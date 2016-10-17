@@ -1,6 +1,7 @@
 require('dotenv').config({ silent: true })
 const express = require('express')
 const Twit = require('twit')
+const _ = require('lodash')
 
 const app = module.exports = express()
 const T = new Twit({
@@ -10,7 +11,13 @@ const T = new Twit({
   access_token_secret: process.env.ACCESS_TOKEN_SECRET
 })
 
-var stream = T.stream('user')
+const nopeMedia = [
+  '788024486545293312',
+  '788028055801438209',
+  '788028457481596928'
+]
+
+const stream = T.stream('user')
 
 stream.on('direct_message', ({ direct_message: dm }) => {
   nope(dm.text)
@@ -46,6 +53,7 @@ function nope (id) {
 
       return T.post('statuses/update', {
         status: `@${tweet.user.screen_name} Nope.`,
+        media_ids: _.sample(nopeMedia),
         in_reply_to_status_id: tweet.id
       }).then(({ data: tweet }) => {
         if (tweet.errors) throw new Error('Duplicate Tweet!')
