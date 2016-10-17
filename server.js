@@ -10,27 +10,50 @@ const T = new Twit({
   access_token_secret: process.env.ACCESS_TOKEN_SECRET
 })
 
+var stream = T.stream('user')
+
+stream.on('direct_message', ({ direct_message: dm }) => {
+  nope(dm.text)
+    .then(({ data: tweet }) => {
+      T.post('direct_messages/new', {
+        user_id: dm.sender.id,
+        text: `https://twitter.com/nope_bot/status/${tweet.id_str}`
+      })
+    })
+    .catch(console.error)
+})
+
 app.post('/twitter/:id', (req, res) => {
-  T.get('statuses/show/:id', { id: req.params.id }, (err, tweet, response) => {
-    if (err) {
-      console.error(err)
-      res.status(404).send('No tweet found for this id.')
-    } else if (tweet) {
-      T.post('statuses/update', {
+  nope(req.params.id)
+    .then(tweet => {
+      if (!tweet.errors) {
+        console.log(tweet)
+        res.status(201).send('Created Nope!')
+      } else {
+        res.status(500).send('Server Error!')
+      }
+    })
+    .catch(err => {
+      console.error('ERR', err)
+      res.status(500).send('500 ' + err)
+    })
+})
+
+function nope (id) {
+  return T.get('statuses/show/:id', { id })
+    .then(({ data: tweet }) => {
+      if (tweet.errors) throw new Error('No tweet with this id found!')
+
+      return T.post('statuses/update', {
         status: `@${tweet.user.screen_name} Nope.`,
         in_reply_to_status_id: tweet.id
-      }, (err, data, response) => {
-        if (err) {
-          console.error(err)
-          res.sendStatus(500)
-        } else {
-          console.log(data)
-          res.send(tweet.id + ' - ' + tweet.user.screen_name + ': ' + tweet.text)
-        }
+      }).then(({ data: tweet }) => {
+        if (tweet.errors) throw new Error('Duplicate Tweet!')
+
+        return tweet
       })
-    }
-  })
-})
+    })
+}
 
 if (!module.parent) {
   app.listen(3000, function () { console.log(`Nopebot listening on port ${this.address().port}`) })
