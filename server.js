@@ -1,4 +1,5 @@
 require('dotenv').config({ silent: true })
+const mongoose = require('mongoose')
 const express = require('express')
 const Twit = require('twit')
 const _ = require('lodash')
@@ -9,6 +10,13 @@ const T = new Twit({
   consumer_secret: process.env.CONSUMER_SECRET,
   access_token: process.env.ACCESS_TOKEN,
   access_token_secret: process.env.ACCESS_TOKEN_SECRET
+})
+
+mongoose.connect(process.env.DB || 'mongodb://localhost/nope')
+
+const NopeTweet = mongoose.model('NopeTweet', {
+  status_id: String,
+  in_reply_to_status_id: String
 })
 
 const nopeMedia = [
@@ -66,16 +74,24 @@ function nope (id) {
         status: `@${tweet.user.screen_name} Nope.`,
         media_ids: _.sample(nopeMedia),
         in_reply_to_status_id: tweet.id
-      }).then(({ data: tweet }) => {
-        if (tweet.errors) {
-          console.error(tweet.errors)
-          tweet.errors.forEach(({ message: err }) => {
-            throw new Error(err)
-          })
-        }
-
-        return tweet
       })
+    })
+    .then(({ data: tweet }) => {
+      if (tweet.errors) {
+        console.error(tweet.errors)
+        tweet.errors.forEach(({ message: err }) => {
+          throw new Error(err)
+        })
+      }
+
+      let newNopeTweet = new NopeTweet({
+        status_id: tweet.id_str,
+        in_reply_to_status_id: id
+      })
+
+      newNopeTweet.save()
+
+      return tweet
     })
 }
 
