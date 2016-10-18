@@ -27,10 +27,16 @@ stream.on('direct_message', ({ direct_message: dm }) => {
         text: `https://twitter.com/nope_bot/status/${tweet.id_str}`
       })
     })
-    .catch(console.error)
+    .catch(err => {
+      console.error(err)
+      T.post('direct_messages/new', {
+        user_id: dm.sender.id,
+        text: String(err)
+      })
+    })
 })
 
-app.post('/twitter/:id', (req, res) => {
+app.get('/twitter/:id', (req, res) => {
   nope(req.params.id)
     .then(tweet => {
       if (!tweet.errors) {
@@ -49,14 +55,24 @@ app.post('/twitter/:id', (req, res) => {
 function nope (id) {
   return T.get('statuses/show/:id', { id })
     .then(({ data: tweet }) => {
-      if (tweet.errors) throw new Error('No tweet with this id found!')
+      if (tweet.errors) {
+        console.error(tweet.errors)
+        tweet.errors.forEach(({ message: err }) => {
+          throw new Error(err)
+        })
+      }
 
       return T.post('statuses/update', {
         status: `@${tweet.user.screen_name} Nope.`,
         media_ids: _.sample(nopeMedia),
         in_reply_to_status_id: tweet.id
       }).then(({ data: tweet }) => {
-        if (tweet.errors) throw new Error('Duplicate Tweet!')
+        if (tweet.errors) {
+          console.error(tweet.errors)
+          tweet.errors.forEach(({ message: err }) => {
+            throw new Error(err)
+          })
+        }
 
         return tweet
       })
