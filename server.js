@@ -71,6 +71,7 @@ function nope (id) {
     .then(({ data: tweet }) => {
       if (tweet.errors) {
         console.error(tweet.errors)
+
         tweet.errors.forEach(({ message: err }) => {
           throw new Error(err)
         })
@@ -86,6 +87,7 @@ function nope (id) {
     .then(({ data: tweet }) => {
       if (tweet.errors) {
         console.error(tweet.errors)
+
         tweet.errors.forEach(({ message: err }) => {
           throw new Error(err)
         })

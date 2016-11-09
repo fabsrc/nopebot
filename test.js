@@ -4,18 +4,18 @@ import request from 'supertest'
 import app from './server'
 
 nock('https://api.twitter.com/1.1/statuses')
-  .get('/show/787986487409254400.json')
-  .reply(200, { id: '787986487409254400', user: { screen_name: 'test_user' } })
-  .post('/update.json?status=%40test_user%20Nope.&in_reply_to_status_id=787986487409254400')
-  .reply(403, { 'message': 'nope' })
+  .get('/show/0000000000.json')
+  .reply(200, { id: '0000000000', user: { screen_name: 'test_user' } })
+  .post('/update.json?status=%40test_user%20Nope.&in_reply_to_status_id=0000000000')
+  .reply(201, { 'message': 'Nope.' })
 
-test.skip.cb('status is a duplicate', t => {
+test.skip.cb('nope was posted', t => {
   request(app)
-    .post('/twitter/787986487409254400')
+    .post('/twitter/0000000000')
     .end((err, res) => {
-      console.log(err, res)
+      console.log(res)
       t.ifError(err)
-      t.fail()
+      t.pass()
       t.end()
     })
 })
