@@ -15,35 +15,51 @@ mongoose.connect(process.env.DB || 'mongodb://localhost/nope')
 const NopeTweet = mongoose.model('NopeTweet', {})
 const stream = T.stream('user')
 
+T.get('account/verify_credentials', { skip_status: true, include_entities: false, include_email: false })
+  .then(({ data: user }) => {
+    T.user = user
+  })
+
 stream.on('direct_message', ({ direct_message: dm }) => {
-  nope(dm.text)
-    .then(tweet => {
-      T.post('direct_messages/new', {
-        user_id: dm.sender.id,
-        text: `https://twitter.com/nope_bot/status/${tweet.id_str}`
+  if (T.user && T.user.id_str === dm.recipient_id_str) {
+    let statusId
+
+    if (isNaN(dm.text) && dm.entities.urls) {
+      dm.entities.urls.forEach(u => {
+        statusId = u.expanded_url.match(/http(s)?:\/\/(www\.)?twitter\.com\/[A-Za-z0-9_]+\/status\/(\d+)/)[3]
       })
-    })
-    .catch(err => {
-      console.error(err)
-      T.post('direct_messages/new', {
-        user_id: dm.sender.id,
-        text: String(err)
+    } else {
+      statusId = dm.text
+    }
+
+    nope(statusId)
+      .then(tweet => {
+        T.post('direct_messages/new', {
+          user_id: dm.sender.id,
+          text: `https://twitter.com/${tweet.user.id_str}/status/${tweet.id_str}`
+        })
       })
-    })
+      .catch(err => {
+        console.error(err)
+        T.post('direct_messages/new', {
+          user_id: dm.sender.id,
+          text: String(err)
+        })
+      })
+  }
 })
 
 app.post('/twitter/:id', (req, res) => {
   nope(req.params.id)
     .then(tweet => {
       if (!tweet.errors) {
-        console.log(tweet)
-        res.status(201).send('Created Nope!')
+        res.status(201).send(tweet)
       } else {
         res.status(500).send('Server Error!')
       }
     })
     .catch(err => {
-      console.error('ERR', err)
+      console.error(err)
       res.status(500).send('500 ' + err)
     })
 })
@@ -58,14 +74,14 @@ function nope (id) {
         tweet.errors.forEach(({ message: err }) => {
           throw new Error(err)
         })
+      } else {
+        newNopeTweet = new NopeTweet(tweet, false)
+
+        return T.post('statuses/update', {
+          status: `@${tweet.user.screen_name} Nope.`,
+          in_reply_to_status_id: tweet.id_str
+        })
       }
-
-      newNopeTweet = new NopeTweet(tweet, false)
-
-      return T.post('statuses/update', {
-        status: `@${tweet.user.screen_name} Nope.`,
-        in_reply_to_status_id: tweet.id_str
-      })
     })
     .then(({ data: tweet }) => {
       if (tweet.errors) {
