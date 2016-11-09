@@ -2,7 +2,6 @@ require('dotenv').config({ silent: true })
 const mongoose = require('mongoose')
 const express = require('express')
 const Twit = require('twit')
-const _ = require('lodash')
 
 const app = module.exports = express()
 const T = new Twit({
@@ -13,23 +12,12 @@ const T = new Twit({
 })
 
 mongoose.connect(process.env.DB || 'mongodb://localhost/nope')
-
-const NopeTweet = mongoose.model('NopeTweet', {
-  status_id: String,
-  in_reply_to_status_id: String
-})
-
-const nopeMedia = [
-  '788024486545293312',
-  '788028055801438209',
-  '788028457481596928'
-]
-
+const NopeTweet = mongoose.model('NopeTweet', {})
 const stream = T.stream('user')
 
 stream.on('direct_message', ({ direct_message: dm }) => {
   nope(dm.text)
-    .then(({ data: tweet }) => {
+    .then(tweet => {
       T.post('direct_messages/new', {
         user_id: dm.sender.id,
         text: `https://twitter.com/nope_bot/status/${tweet.id_str}`
@@ -44,7 +32,7 @@ stream.on('direct_message', ({ direct_message: dm }) => {
     })
 })
 
-app.get('/twitter/:id', (req, res) => {
+app.post('/twitter/:id', (req, res) => {
   nope(req.params.id)
     .then(tweet => {
       if (!tweet.errors) {
@@ -61,6 +49,8 @@ app.get('/twitter/:id', (req, res) => {
 })
 
 function nope (id) {
+  let newNopeTweet
+
   return T.get('statuses/show/:id', { id })
     .then(({ data: tweet }) => {
       if (tweet.errors) {
@@ -70,10 +60,11 @@ function nope (id) {
         })
       }
 
+      newNopeTweet = new NopeTweet(tweet, false)
+
       return T.post('statuses/update', {
         status: `@${tweet.user.screen_name} Nope.`,
-        media_ids: _.sample(nopeMedia),
-        in_reply_to_status_id: tweet.id
+        in_reply_to_status_id: tweet.id_str
       })
     })
     .then(({ data: tweet }) => {
@@ -84,11 +75,7 @@ function nope (id) {
         })
       }
 
-      let newNopeTweet = new NopeTweet({
-        status_id: tweet.id_str,
-        in_reply_to_status_id: id
-      })
-
+      newNopeTweet.set('nope', tweet)
       newNopeTweet.save()
 
       return tweet
