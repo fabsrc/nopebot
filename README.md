@@ -10,6 +10,10 @@
 
 *A Twitter Bot.*
 
+## Requirements
+
+Nopebot requires a distinct Twitter [account](https://twitter.com/signup) in order to send *nopes* to Tweets.
+
 ## Install
 
 ```bash
@@ -22,7 +26,23 @@ $ npm install
 $ npm start
 ```
 
-Nodebot requires `CONSUMER_KEY`, `CONSUMER_SECRET`, `ACCESS_TOKEN` and `ACCESS_TOKEN_SECRET` environment variables for Twitter. They can be specified in a `.env` file.
+Nopebot requires `CONSUMER_KEY`, `CONSUMER_SECRET`, `ACCESS_TOKEN` and `ACCESS_TOKEN_SECRET` environment variables for Twitter. They can be specified in a `.env` file.
+
+## Usage
+
+Currently only *Twitter* is supported.
+
+### REST
+
+To "nopify" a tweet, the `id` of the tweet is necessary. A `POST` request can be send to the following URL:
+
+```
+http://localhost:3000/twitter/:id
+```
+
+### Twitter Direct Message
+
+Another way to "nopify" a tweet is to send the `id` or the URL of the tweet via Twitter DM to the account of Nopebot.
 
 ## Test
 
