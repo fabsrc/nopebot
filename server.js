@@ -11,7 +11,7 @@ const T = new Twit({
   access_token_secret: process.env.ACCESS_TOKEN_SECRET
 })
 
-mongoose.connect(process.env.DB || 'mongodb://localhost/nope')
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost/nope')
 const NopeTweet = mongoose.model('NopeTweet', {})
 const stream = T.stream('user')
 
