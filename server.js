@@ -1,7 +1,7 @@
-require('dotenv').config({ silent: true })
 const mongoose = require('mongoose')
 const express = require('express')
 const Twit = require('twit')
+require('dotenv').config()
 
 const app = module.exports = express()
 const T = new Twit({
